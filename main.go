@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"sync"
 	"time"
-    "math/rand"
 )
 
 var testData = map[Name]Neighbors{
@@ -26,9 +26,7 @@ var testData = map[Name]Neighbors{
 		"c": 1,
 		"b": 5,
 	},
-	"e": {
-		
-	},
+	"e": {},
 }
 
 func changePath(a Name, b Name, price Cost) {
@@ -50,9 +48,9 @@ func delNode(a Name) {
 
 func findPath(a Name, b Name) {
 	r := GetPath(testData, "a")
-	if(int(r["b"]) == 255){
+	if int(r["b"]) == 255 {
 		fmt.Println("not found")
-	}else{
+	} else {
 		fmt.Println("found, cost: ", int(r["b"]))
 	}
 }
@@ -66,22 +64,66 @@ func getRandomNode() Name {
 }
 
 func getRandomPath() (Name, Name) {
+	mapIsEmpty := true
+	for k := range testData {
+		if len(testData[k]) > 0 {
+			mapIsEmpty = false
+			break
+		}
+	}
+	if mapIsEmpty {
+		panic("map is empty")
+	}
+	nodeIsEmpty := true
 	a := getRandomNode()
 	r := GetPath(testData, a)
+	for nodeIsEmpty {
+		a = getRandomNode()
+		r = GetPath(testData, a)
+		//check if there is a path
+		for _, node := range r {
+			if node != 255 {
+				nodeIsEmpty = false
+				break
+			}
+		}
+	}
 	for {
 		b := getRandomNode()
-		if(int(r[b]) != 255){
+		if int(r[b]) != 255 {
 			return a, b
 		}
 	}
 }
 
 func getRandomNodesWithoutPath() (Name, Name) {
+	mapIsFull := true
+	for k := range testData {
+		if len(testData[k]) < len(testData)-1 {
+			mapIsFull = false
+			break
+		}
+	}
+	if mapIsFull {
+		panic("map is full")
+	}
+	nodeIsFull := true
 	a := getRandomNode()
 	r := GetPath(testData, a)
+	for nodeIsFull {
+		a = getRandomNode()
+		r = GetPath(testData, a)
+		//check if there is a path
+		for _, node := range r {
+			if node == 255 {
+				nodeIsFull = false
+				break
+			}
+		}
+	}
 	for {
 		b := getRandomNode()
-		if(int(r[b]) == 255 && a != b){
+		if int(r[b]) == 255 && a != b {
 			return a, b
 		}
 	}
@@ -93,8 +135,8 @@ func isNodeExist(a Name) bool {
 }
 
 func main() {
-	
-    var mutex sync.RWMutex
+
+	var mutex sync.RWMutex
 	wg := sync.WaitGroup{}
 
 	go func(mutex *sync.RWMutex) {
@@ -102,9 +144,10 @@ func main() {
 			time.Sleep(time.Second)
 
 			mutex.Lock()
+			fmt.Println("				change path")
 			time.Sleep(time.Millisecond * 100)
 			a, b := getRandomPath()
-			changePath(a, b, Cost(rand.Intn(10) + 1))
+			changePath(a, b, Cost(rand.Intn(10)+1))
 			fmt.Println("change cost", a, b)
 			mutex.Unlock()
 		}
@@ -115,18 +158,20 @@ func main() {
 			time.Sleep(time.Second)
 
 			mutex.Lock()
+			fmt.Println("				delete 1")
 			time.Sleep(time.Millisecond * 100)
 			a, b := getRandomPath()
 			delPath(a, b)
 			fmt.Println("del path", a, b)
 			mutex.Unlock()
 
-			time.Sleep(time.Second*2)
+			time.Sleep(time.Second * 2)
 
 			mutex.Lock()
+			fmt.Println("				add 1")
 			time.Sleep(time.Millisecond * 100)
 			a, b = getRandomNodesWithoutPath()
-			changePath(a, b, Cost(rand.Intn(10) + 1))
+			changePath(a, b, Cost(rand.Intn(10)+1))
 			fmt.Println("add path", a, b)
 			mutex.Unlock()
 		}
@@ -137,6 +182,7 @@ func main() {
 			time.Sleep(time.Second)
 
 			mutex.Lock()
+			fmt.Println("				delete 2")
 			time.Sleep(time.Millisecond * 100)
 			a := getRandomNode()
 			delNode(a)
@@ -146,6 +192,7 @@ func main() {
 			time.Sleep(time.Second)
 
 			mutex.Lock()
+			fmt.Println("				add 2")
 			time.Sleep(time.Millisecond * 100)
 			b := Name(rand.Intn(50) + 10)
 			for {
@@ -163,11 +210,11 @@ func main() {
 	go func(mutex *sync.RWMutex) {
 		for {
 			time.Sleep(time.Second)
-
-			mutex.RLock()
+			mutex.Lock()
+			fmt.Println("				finding path")
 			time.Sleep(time.Millisecond * 100)
 			findPath(getRandomNode(), getRandomNode())
-			mutex.RUnlock()
+			mutex.Unlock()
 		}
 	}(&mutex)
 
